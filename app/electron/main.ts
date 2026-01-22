@@ -5,20 +5,46 @@ import { registerServerIpc } from './ipc/serverIpc';
 import { registerModsIpc } from './ipc/modsIpc';
 import { registerRuntimeIpc } from './ipc/runtimeIpc';
 
-const logToFile = (message: string, data?: Record<string, unknown>) => {
+const safeStringify = (value: unknown) => {
   try {
-    const logDir = path.join(app.getPath('userData'), 'logs');
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
-    }
-    const logPath = path.join(logDir, 'main.log');
-    const timestamp = new Date().toISOString();
-    const payload = data ? ` ${JSON.stringify(data)}` : '';
-    fs.appendFileSync(logPath, `[${timestamp}] ${message}${payload}\n`, 'utf8');
+    return JSON.stringify(value);
+  } catch {
+    return '"[unserializable]"';
+  }
+};
+
+const appendFileSafe = (filePath: string, line: string) => {
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.appendFileSync(filePath, line, 'utf8');
   } catch {
     // Ignore logging errors to avoid crashing the app.
   }
 };
+
+const appName = app.getName();
+const bootBase = process.env.APPDATA || process.env.LOCALAPPDATA || process.cwd();
+const bootLogDir = path.join(bootBase, appName, 'logs');
+const bootLogPath = path.join(bootLogDir, 'boot.txt');
+const bootTimestamp = new Date().toISOString();
+
+appendFileSafe(bootLogPath, `boot start ${bootTimestamp}\n`);
+
+const bootLog = (message: string, data?: Record<string, unknown>) => {
+  const timestamp = new Date().toISOString();
+  const payload = data ? ` ${safeStringify(data)}` : '';
+  appendFileSafe(bootLogPath, `[${timestamp}] ${message}${payload}\n`);
+};
+
+let logToFile: (message: string, data?: Record<string, unknown>) => void = bootLog;
+
+process.on('uncaughtException', (error) => {
+  logToFile('uncaughtException', { message: error?.message, stack: error?.stack });
+});
+
+process.on('unhandledRejection', (reason) => {
+  logToFile('unhandledRejection', { reason: safeStringify(reason) });
+});
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -87,6 +113,19 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
+  const mainLogPath = path.join(app.getPath('userData'), 'logs', 'main.log');
+  logToFile = (message: string, data?: Record<string, unknown>) => {
+    const timestamp = new Date().toISOString();
+    const payload = data ? ` ${safeStringify(data)}` : '';
+    appendFileSafe(mainLogPath, `[${timestamp}] ${message}${payload}\n`);
+  };
+
+  logToFile('paths', {
+    userData: app.getPath('userData'),
+    appPath: app.getAppPath(),
+    dirname: __dirname
+  });
+
   registerServerIpc();
   registerModsIpc();
   registerRuntimeIpc();
