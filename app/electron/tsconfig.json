@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "lib": ["ES2020", "DOM"],
+    "rootDir": ".",
+    "outDir": "../../dist/electron",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "Node",
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "types": ["node", "electron"]
+  },
+  "include": [
+    "main.ts",
+    "preload.ts",
+    "ipc/**/*.ts",
+    "domain/**/*.ts",
+    "services/**/*.ts",
+    "storage/**/*.ts",
+    "utils/**/*.ts"
+  ]
+}
