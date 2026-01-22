@@ -1,9 +1,9 @@
 name: Build Windows Portable
 
 on:
-  workflow_dispatch:        # 允許你手動按一下就打包
+  workflow_dispatch:
   push:
-    branches: [ "main" ]    # 推到 main 就自動打包
+    branches: [ "main" ]
 
 jobs:
   build-win:
@@ -22,10 +22,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 如果你的專案需要先 build renderer（有些專案需要）
-      # 取消下面兩行註解：
-      # - name: Build
-      #   run: npm run build
+      - name: Build (renderer + electron)
+        run: npm run build
+
+      - name: Verify renderer output exists
+        run: node -e "require('fs').accessSync('dist/renderer/index.html'); console.log('OK: dist/renderer/index.html exists')"
 
       - name: Build Windows portable
         run: npx electron-builder --win portable
@@ -37,5 +38,5 @@ jobs:
         with:
           name: windows-portable
           path: |
-            dist/**/*.exe
             release/**/*.exe
+            dist/**/*.exe
