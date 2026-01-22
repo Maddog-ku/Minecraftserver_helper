@@ -1,0 +1,41 @@
+name: Build Windows Portable
+
+on:
+  workflow_dispatch:        # 允許你手動按一下就打包
+  push:
+    branches: [ "main" ]    # 推到 main 就自動打包
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 如果你的專案需要先 build renderer（有些專案需要）
+      # 取消下面兩行註解：
+      # - name: Build
+      #   run: npm run build
+
+      - name: Build Windows portable
+        run: npx electron-builder --win portable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: |
+            dist/**/*.exe
+            release/**/*.exe
