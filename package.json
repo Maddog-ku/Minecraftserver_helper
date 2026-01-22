@@ -1,0 +1,54 @@
+{
+  "name": "minecraft-server-helper",
+  "version": "0.1.0",
+  "description": "Electron + Vite + Vue 3 + TypeScript starter",
+  "main": "dist/electron/main.js",
+  "private": true,
+  "scripts": {
+    "dev": "vite --config app/renderer/vite.config.ts",
+    "build:renderer": "vite build --config app/renderer/vite.config.ts",
+    "build:electron": "tsc -p app/electron/tsconfig.json",
+    "build": "npm run build:renderer && npm run build:electron",
+    "electron:dev": "concurrently -k \"npm run dev\" \"tsc -p app/electron/tsconfig.json --watch\" \"wait-on tcp:5173 dist/electron/main.js && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.10",
+    "pinia": "^2.2.4",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.5",
+    "@types/node": "^20.12.12",
+    "@vitejs/plugin-vue": "^5.1.4",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.example.minecraftserverhelper",
+    "productName": "Minecraft Server Helper",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "dist/electron/main.js"
+    },
+    "asar": true,
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
