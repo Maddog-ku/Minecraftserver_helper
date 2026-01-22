@@ -26,7 +26,8 @@ jobs:
         run: npm run build
 
       - name: Verify renderer output exists
-        run: node -e "require('fs').accessSync('dist/renderer/index.html'); console.log('OK: dist/renderer/index.html exists')"
+        run: |
+          node -e "require('fs').accessSync('dist/renderer/index.html'); console.log('OK: dist/renderer/index.html exists')"
 
       - name: Build Windows portable
         run: npx electron-builder --win portable
