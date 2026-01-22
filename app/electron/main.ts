@@ -47,13 +47,14 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const createWindow = () => {
+  const preloadPath = path.join(__dirname, 'preload.js');
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: preloadPath
     }
   });
 
@@ -65,7 +66,8 @@ const createWindow = () => {
     resourcesPath: process.resourcesPath,
     dirname: __dirname,
     indexPath,
-    indexExists
+    indexExists,
+    preloadPath
   };
 
   let debugShown = false;

@@ -45,7 +45,10 @@
     },
     "asar": true,
     "win": {
-      "target": "nsis"
+      "target": [
+        "portable",
+        "nsis"
+      ]
     },
     "nsis": {
       "oneClick": false,
