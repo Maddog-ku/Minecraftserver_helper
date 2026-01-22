@@ -57,11 +57,51 @@ const createWindow = () => {
     }
   });
 
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    logToFile('did-fail-load', { errorCode, errorDescription, validatedURL });
-    console.error('did-fail-load', { errorCode, errorDescription, validatedURL });
-  });
+  const devUrl = process.env.VITE_DEV_SERVER_URL;
+  const indexPath = path.join(app.getAppPath(), 'dist', 'renderer', 'index.html');
+  const indexExists = fs.existsSync(indexPath);
+  const debugInfo = {
+    appPath: app.getAppPath(),
+    resourcesPath: process.resourcesPath,
+    dirname: __dirname,
+    indexPath,
+    indexExists
+  };
+
+  let debugShown = false;
+  const showDebugPage = (reason: string, extra?: Record<string, unknown>) => {
+    if (debugShown) return;
+    debugShown = true;
+    logToFile('show-debug-page', { reason, ...debugInfo, ...extra });
+    const debugText = JSON.stringify({ reason, ...debugInfo, ...extra }, null, 2);
+    const errorHtml = `
+      <html>
+        <body style="font-family: sans-serif; padding: 24px;">
+          <h2>Failed to load UI</h2>
+          <pre>${debugText}</pre>
+        </body>
+      </html>
+    `;
+    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`);
+  };
+
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      logToFile('did-fail-load', {
+        errorCode,
+        errorDescription,
+        validatedURL,
+        isMainFrame
+      });
+      console.error('did-fail-load', { errorCode, errorDescription, validatedURL, isMainFrame });
+      if (!devUrl && isMainFrame) {
+        showDebugPage('did-fail-load', { errorCode, errorDescription, validatedURL });
+      }
+    }
+  );
   mainWindow.webContents.on('render-process-gone', (event, details) => {
+    logToFile('render-process-gone', { details });
     console.error('render-process-gone', details);
   });
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
@@ -69,46 +109,20 @@ const createWindow = () => {
     console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`);
   });
 
-  const devUrl = process.env.VITE_DEV_SERVER_URL;
-  const indexPath = path.join(app.getAppPath(), 'dist', 'renderer', 'index.html');
-  logToFile('paths', {
-    appPath: app.getAppPath(),
-    dirname: __dirname,
-    indexPath,
-    indexExists: fs.existsSync(indexPath)
-  });
+  logToFile('paths', debugInfo);
+
   if (devUrl) {
     mainWindow.loadURL(devUrl);
     mainWindow.webContents.openDevTools({ mode: 'detach' });
     return;
   }
 
-  if (!fs.existsSync(indexPath)) {
-    logToFile('index-missing', {
-      appPath: app.getAppPath(),
-      dirname: __dirname,
-      indexPath
-    });
-    console.error('index.html not found for production build.', {
-      appPath: app.getAppPath(),
-      dirname: __dirname,
-      indexPath
-    });
-    const errorHtml = `
-      <html>
-        <body style="font-family: sans-serif; padding: 24px;">
-          <h2>Failed to load UI</h2>
-          <p>index.html not found.</p>
-          <pre>${indexPath}</pre>
-        </body>
-      </html>
-    `;
-    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`);
+  if (!indexExists) {
+    showDebugPage('index-missing');
     return;
   }
 
   mainWindow.loadFile(indexPath);
-  // Production debug: comment out when not needed.
   mainWindow.webContents.openDevTools({ mode: 'detach' });
 };
 
@@ -123,7 +137,8 @@ app.whenReady().then(() => {
   logToFile('paths', {
     userData: app.getPath('userData'),
     appPath: app.getAppPath(),
-    dirname: __dirname
+    dirname: __dirname,
+    resourcesPath: process.resourcesPath
   });
 
   registerServerIpc();
